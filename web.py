@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request
+import requests
+from bs4 import BeautifulSoup
+
+from flask import Flask, render_template,request
 from datetime import datetime
 
 import os
@@ -18,47 +21,63 @@ else:
 
 firebase_admin.initialize_app(cred)
 
-
-
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    link = "<h1>歡迎進入楊子青的網站20260409</h1>"
+    link = "<h1>歡迎進入呂恩妮的網站</h1>"
     link += "<a href=/mis>課程</a><hr>"
     link += "<a href=/today>現在日期時間</a><hr>"
     link += "<a href=/me>關於我</a><hr>"
-    link += "<a href=/welcome?u=子青&d=靜宜資管&c=資訊管理導論>Get傳值</a><hr>"
-    link += "<a href=/account>POST傳值</a><hr>"
-    link += "<a href=/read>讀取Firestore資料</a><hr>"
-    link += "<a href=/read2>讀取Firestore資料(根據姓名關鍵字:楊)</a><hr>"
+    link += "<a href=/welcome?u=恩妮&d=靜宜資管&c=資訊管理導論>Get傳值</a><hr>"
+    link += "<a href=/account>Post傳值</a><hr>"
+    link += "<a href=/math2>次方根號計算</a><hr>"
+    link += "<br><a href=/read>讀取Firestore資料</a><br>"
+    link += "<a href=/read2>讀取Firestore資料(根據姓名關鍵字:)</a><br>"
+    link += "<a href=/spider1>爬取子青老師本學期課程</a><hr>"
     return link
+
+@app.route("/spuder1")
+def spider1():
+    R = ""
+    url = "https://www1.pu.edu.tw/~tcyang/course.html"
+    Data = requests.get(url)
+    Data.encoding = "utf-8"
+    #print(Data.text)
+    sp = BeautifulSoup(Data.text, "html.parser")
+    result=sp.select(".team-box a")
+
+    for i in result:
+        R += i.text + i.get("href") + "<br>"
+    return R
 
 @app.route("/read2")
 def read2():
     Result = ""
-    keyword = "楊"
+    keyword = "康"
     db = firestore.client()
     collection_ref = db.collection("靜宜資管2026B")    
-    docs = collection_ref.get()
-    for doc in docs: 
+    docs = collection_ref.get()    
+    for doc in docs:    
         teacher = doc.to_dict()
-        if keyword in teacher["name"]:        
-            Result += str(teacher) + "<br>"
+        if keyword in teacher["name"]     
+        Result += str(teacher) + "<br>"  
 
-    if Result == "":
-        Result = "抱歉,查無此關鍵字姓名之老師資料"    
+    if Result =="":
+         Result =  "抱歉，查無關鍵字姓名之老師資料"
     return Result
+    return render_template("read2.html")
 
 @app.route("/read")
 def read():
     Result = ""
+    keyword = ""
     db = firestore.client()
     collection_ref = db.collection("靜宜資管2026B")    
     docs = collection_ref.get()
-    docs = collection_ref.order_by("lab", direction=firestore.Query.DESCENDING).get()
-    for doc in docs:         
-        Result += str(doc.to_dict()) + "<br>"    
+    docs = collection_ref.order_by("lab",direction=firestore.Query.DESCENDING)  
+    for doc in docs:    
+        Result += str(doc.to_dict()) + "<br>"  
     return Result
 
 @app.route("/mis")
@@ -68,19 +87,18 @@ def course():
 @app.route("/today")
 def today():
     now = datetime.now()
-    return render_template("today.html", datetime=str(now))
+    return render_template("today.html", datetime = str(now))
 
 @app.route("/me")
 def me():
-    return render_template("mis2026b.html")
+    return render_template("mis0319.html")
 
-@app.route("/welcome", methods=["GET"])
+@app.route("/welcome",methods=["GET"])
 def welcome():
     user = request.values.get("u")
     d = request.values.get("d")
-    c = request.values.get("c")    
-    return render_template("welcome.html", name= user, dep = d, course = c)
-
+    c = request.values.get("c")
+    return render_template("welcome.html",name = user,dep = d,course = c)
 
 @app.route("/account", methods=["GET", "POST"])
 def account():
@@ -92,6 +110,10 @@ def account():
     else:
         return render_template("account.html")
 
+@app.route("/math2")
+def math2():
+    return render_template("math2.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
+
